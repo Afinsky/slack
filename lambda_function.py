@@ -1,12 +1,12 @@
 import json
 import os
-import requests
-
+import urllib3
 
 SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
 SLACK_CHANNEL = os.environ['SLACK_CHANNEL']
 SLACK_USER = os.environ['SLACK_USER']
 
+http = urllib3.PoolManager()
 
 
 def codepipelineHandler(event):
@@ -44,7 +44,8 @@ def codepipelineHandler(event):
                    "value": message['region'],
                    "short": True})
     fields.append({"title": "Status Link",
-                   "value": "https://console.aws.amazon.com/codepipeline/home?region=" + message['region'] + "#/view/" + message['detail']['pipeline'],
+                   "value": "https://console.aws.amazon.com/codepipeline/home?region=" + message['region'] + "#/view/" +
+                            message['detail']['pipeline'],
                    "short": False})
 
     color = "good"
@@ -52,12 +53,12 @@ def codepipelineHandler(event):
     message = event['Records'][0]['Sns']['Message']
     header = message['detail']['state'] + ": CodePipeline " + message['detail']['pipeline']
 
-    fields.append({ "title": "Message",
-                    "value": header,
-                    "short": False})
-    fields.append({ "title": "Detail",
-                    "value": message,
-                    "short": False})
+    fields.append({"title": "Message",
+                   "value": header,
+                   "short": False})
+    fields.append({"title": "Detail",
+                   "value": message,
+                   "short": False})
 
     slackMessage = {
         "text": "*" + subject + "*",
@@ -88,12 +89,9 @@ def lambda_handler(event, context):
     if "codebuild" in eventSource:
         slack_message = codebuildHandler(event)
 
-    response = requests.post(SLACK_WEBHOOK_URL, data=json.dumps(slack_message),
-                             headers={'Content-Type': 'application/json'})
 
-    print('Response: ' + str(response.text))
-    print('Response code: ' + str(response.status_code))
-
+    http.request('POST', SLACK_WEBHOOK_URL, body=json.dumps(slack_message),
+                 headers={'Content-Type': 'application/json'})
     return
 
 
