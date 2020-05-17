@@ -64,7 +64,7 @@ def codepipelineHandler(event):
                    "short": False})
 
     slackMessage = {
-        "text": "*" + subject + "*",
+        "text": "*" + str(subject) + "*",
         "attachments": [
             {
                 "color": color,
@@ -98,6 +98,3 @@ def lambda_handler(event, context):
     http.request('POST', SLACK_WEBHOOK_URL, body=json.dumps(slack_message),
                  headers={'Content-Type': 'application/json'})
     return
-
-
-
