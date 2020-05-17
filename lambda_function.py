@@ -1,13 +1,14 @@
 import json
 import os
 import urllib3
+import logging
 
 SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
 SLACK_CHANNEL = os.environ['SLACK_CHANNEL']
 SLACK_USER = os.environ['SLACK_USER']
 
 http = urllib3.PoolManager()
-
+loger = logging.getLogger()
 
 def codepipelineHandler(event):
     fields = []
@@ -18,6 +19,7 @@ def codepipelineHandler(event):
     print("aws.codepipeline")
 
     message = event['Records'][0]['Sns']['Message']
+    message = json.loads(message)
     detailType = message['detail-type']
 
     if detailType == "CodePipeline Pipeline Execution State Change":
@@ -51,6 +53,7 @@ def codepipelineHandler(event):
     color = "good"
 
     message = event['Records'][0]['Sns']['Message']
+    message = json.loads(message)
     header = message['detail']['state'] + ": CodePipeline " + message['detail']['pipeline']
 
     fields.append({"title": "Message",
@@ -81,7 +84,9 @@ def codebuildHandler(event):
 
 
 def lambda_handler(event, context):
-    eventSource = json.dumps(event['Records'][0]['Sns']['Message']['source'])
+    json_data = json.loads(event['Records'][0]['Sns']['Message'])
+
+    eventSource = json_data['source']
 
     if "codepipeline" in eventSource:
         slack_message = codepipelineHandler(event)
