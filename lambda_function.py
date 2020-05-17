@@ -8,15 +8,15 @@ SLACK_CHANNEL = os.environ['SLACK_CHANNEL']
 SLACK_USER = os.environ['SLACK_USER']
 
 http = urllib3.PoolManager()
-loger = logging.getLogger()
+logger = logging.getLogger()
+
 
 def codepipelineHandler(event):
+    subject = "AWS CodePipeline Notification"
     fields = []
     color = "warning"
     changeType = ""
-    subject = event['Records'][0]['Sns']['Subject']
-
-    print("aws.codepipeline")
+    #snsSubject = event['Records'][0]['Sns']['Subject']
 
     message = event['Records'][0]['Sns']['Message']
     message = json.loads(message)
@@ -64,7 +64,9 @@ def codepipelineHandler(event):
                    "short": False})
 
     slackMessage = {
-        "text": "*" + str(subject) + "*",
+        'channel': SLACK_CHANNEL,
+        'username': SLACK_USER,
+        "text": "*" + subject + "*",
         "attachments": [
             {
                 "color": color,
@@ -76,7 +78,6 @@ def codepipelineHandler(event):
 
 
 def codebuildHandler(event):
-    print("aws.codebuild")
 
     message = json.dumps(event['Records'][0]['Sns']['Message'])
 
@@ -84,8 +85,9 @@ def codebuildHandler(event):
 
 
 def lambda_handler(event, context):
-    json_data = json.loads(event['Records'][0]['Sns']['Message'])
+    logger.info("Event: " + str(event))
 
+    json_data = json.loads(event['Records'][0]['Sns']['Message'])
     eventSource = json_data['source']
 
     if "codepipeline" in eventSource:
@@ -93,7 +95,6 @@ def lambda_handler(event, context):
 
     if "codebuild" in eventSource:
         slack_message = codebuildHandler(event)
-
 
     http.request('POST', SLACK_WEBHOOK_URL, body=json.dumps(slack_message),
                  headers={'Content-Type': 'application/json'})
