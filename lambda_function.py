@@ -24,7 +24,7 @@ def codepipelineHandler(event):
 
     if detailType == "CodePipeline Pipeline Execution State Change":
         changeType = ""
-    elif detailType == detailType == "CodePipeline Stage Execution State Change":
+    elif detailType == "CodePipeline Stage Execution State Change":
         changeType = "STAGE " + message['detail']['stage']
     elif detailType == "CodePipeline Action Execution State Change":
         changeType = "ACTION"
@@ -50,7 +50,6 @@ def codepipelineHandler(event):
                             message['detail']['pipeline'],
                    "short": False})
 
-    color = "good"
 
     message = event['Records'][0]['Sns']['Message']
     message = json.loads(message)
@@ -59,9 +58,9 @@ def codepipelineHandler(event):
     fields.append({"title": "Message",
                    "value": header,
                    "short": False})
-    fields.append({"title": "Detail",
-                   "value": message,
-                   "short": False})
+    #fields.append({"title": "Detail",
+    #               "value": message,
+    #               "short": False})
 
     slackMessage = {
         'channel': SLACK_CHANNEL,
