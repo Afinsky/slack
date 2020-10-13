@@ -4,6 +4,9 @@
 `SLACK_USER` <br>
 `SLACK_WEBHOOK_URL` <br>
 
+## Schema
+![](https://github.com/Afinsky/slack/blob/master/schema.png?raw=true)
+
 
 ## CloudWatch event pattern rule
 
