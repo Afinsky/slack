@@ -3,6 +3,7 @@ import boto3
 import os
 import urllib3
 import logging
+import configparser
 
 SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
 SLACK_CHANNEL = os.environ['SLACK_CHANNEL']
@@ -10,6 +11,8 @@ SLACK_USER = os.environ['SLACK_USER']
 
 http = urllib3.PoolManager()
 logger = logging.getLogger()
+config = configparser.ConfigParser()
+config.read("config.ini")
 
 def getBranchInfo(pipeline):
     client = boto3.client('codepipeline')
@@ -18,6 +21,13 @@ def getBranchInfo(pipeline):
     )
     message = json.dumps(execution['pipeline']['stages'][0]['actions'][0]['configuration']['Branch'], indent=4, sort_keys=True, default=str, separators=(',', ': '))
     return json.loads(message)
+
+def getApplicationDestinationURL(pipelineName):
+    #return config["Applications"][pipelineName]
+    try:
+        return config["Applications"][pipelineName]
+    except KeyError:
+        return "Not exist"
 
 def getCommitInfo(pipeline, executionId, infoType):
     client = boto3.client('codepipeline')
@@ -106,6 +116,15 @@ def codepipelineHandler(event):
                         executionId=message['detail']['execution-id'],
                         infoType='revisionUrl'
                     ),
+            "short": False
+        }
+    )
+    fields.append(
+        {
+            "title": "Web Destination",
+            "value": getApplicationDestinationURL(
+                pipelineName=message['detail']['pipeline']
+            ),
             "short": False
         }
     )

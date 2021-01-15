@@ -1,0 +1,2 @@
+boto3
+#python-lambda-local # To test locally
