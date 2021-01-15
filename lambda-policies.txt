@@ -1,0 +1,30 @@
+The next set of policies must be attached to the lambda IAM role:
+
+# Standard policy
+- AWSLambdaBasicExecutionRole
+
+# GetPipelineExecution
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "GetPipelineExecution",
+            "Effect": "Allow",
+            "Action": "codepipeline:GetPipelineExecution",
+            "Resource": "*"
+        }
+    ]
+}
+
+#GetPipeline
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "GetPipeline",
+            "Effect": "Allow",
+            "Action": "codepipeline:GetPipeline",
+            "Resource": "*"
+        }
+    ]
+}
