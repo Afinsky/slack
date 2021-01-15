@@ -1,4 +1,5 @@
 import json
+import boto3
 import os
 import urllib3
 import logging
@@ -10,6 +11,22 @@ SLACK_USER = os.environ['SLACK_USER']
 http = urllib3.PoolManager()
 logger = logging.getLogger()
 
+def getBranchInfo(pipeline):
+    client = boto3.client('codepipeline')
+    execution = client.get_pipeline(
+        name=pipeline
+    )
+    message = json.dumps(execution['pipeline']['stages'][0]['actions'][0]['configuration']['Branch'], indent=4, sort_keys=True, default=str, separators=(',', ': '))
+    return json.loads(message)
+
+def getCommitInfo(pipeline, executionId, infoType):
+    client = boto3.client('codepipeline')
+    execution = client.get_pipeline_execution(
+        pipelineName=pipeline,
+        pipelineExecutionId=executionId
+    )
+    message = json.dumps(execution['pipelineExecution']['artifactRevisions'][0][infoType], indent=4, sort_keys=True, default=str, separators=(',', ': '))
+    return json.loads(message)
 
 def codepipelineHandler(event):
     subject = "AWS CodePipeline Notification"
@@ -49,7 +66,49 @@ def codepipelineHandler(event):
                    "value": "https://console.aws.amazon.com/codepipeline/home?region=" + message['region'] + "#/view/" +
                             message['detail']['pipeline'],
                    "short": False})
-
+    #pipeline=message['detail']['pipeline']
+    fields.append(
+        {
+            "title": "Branch",
+            "value": getBranchInfo(
+                        pipeline=message['detail']['pipeline']
+                    ),
+            "short": False
+        }
+    )
+    fields.append(
+        {
+            "title": "Commit message",
+            "value": getCommitInfo(
+                        pipeline=message['detail']['pipeline'],
+                        executionId=message['detail']['execution-id'],
+                        infoType='revisionSummary'
+                   ),
+            "short": False
+         }
+    )
+    fields.append(
+        {
+            "title": "Commit hash",
+            "value": getCommitInfo(
+                        pipeline=message['detail']['pipeline'],
+                        executionId=message['detail']['execution-id'],
+                        infoType='revisionId'
+                    ),
+            "short": False
+        }
+    )
+    fields.append(
+        {
+            "title": "Commit URL",
+            "value": getCommitInfo(
+                        pipeline=message['detail']['pipeline'],
+                        executionId=message['detail']['execution-id'],
+                        infoType='revisionUrl'
+                    ),
+            "short": False
+        }
+    )
 
     message = event['Records'][0]['Sns']['Message']
     message = json.loads(message)
