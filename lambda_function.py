@@ -22,10 +22,9 @@ def getBranchInfo(pipeline):
     message = json.dumps(execution['pipeline']['stages'][0]['actions'][0]['configuration']['Branch'], indent=4, sort_keys=True, default=str, separators=(',', ': '))
     return json.loads(message)
 
-def getApplicationDestinationURL(pipelineName):
-    #return config["Applications"][pipelineName]
+def getApplicationDestinationURL(config, configName, pipelineName):
     try:
-        return config["Applications"][pipelineName]
+        return config[configName][pipelineName]
     except KeyError:
         return "Not exist"
 
@@ -121,8 +120,10 @@ def codepipelineHandler(event):
     )
     fields.append(
         {
-            "title": "Web Destination",
+            "title": "Destination link",
             "value": getApplicationDestinationURL(
+                config=config,
+                configName="Applications",
                 pipelineName=message['detail']['pipeline']
             ),
             "short": False
