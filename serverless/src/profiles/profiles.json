@@ -1,0 +1,6 @@
+{
+  "_comment": "Notation: \"Serverless stage name\": \"AWS Profile name in .aws/\"",
+  "dev": "sandbox",
+  "stage": "phapha",
+  "prod": "super"
+}
