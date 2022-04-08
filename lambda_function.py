@@ -19,7 +19,7 @@ def getBranchInfo(pipeline):
     execution = client.get_pipeline(
         name=pipeline
     )
-    message = json.dumps(execution['pipeline']['stages'][0]['actions'][0]['configuration']['Branch'], indent=4, sort_keys=True, default=str, separators=(',', ': '))
+    message = json.dumps(execution['pipeline']['stages'][0]['actions'][0]['configuration']['BranchName'], indent=4, sort_keys=True, default=str, separators=(',', ': '))
     return json.loads(message)
 
 def getApplicationDestinationURL(config, configName, pipelineName):
@@ -35,7 +35,13 @@ def getCommitInfo(pipeline, executionId, infoType):
         pipelineExecutionId=executionId
     )
     message = json.dumps(execution['pipelineExecution']['artifactRevisions'][0][infoType], indent=4, sort_keys=True, default=str, separators=(',', ': '))
-    return json.loads(message)
+    if infoType == 'revisionSummary':
+        message = json.loads(message) #Remove special/escape characters
+        message = json.loads(message) #Convert string to dictionary
+        message = message['CommitMessage']
+    else:
+        message = json.loads(message)
+    return message
 
 def codepipelineHandler(event):
     subject = "AWS CodePipeline Notification"
