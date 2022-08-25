@@ -4,23 +4,28 @@ import os
 import urllib3
 import logging
 import configparser
+from urllib import parse
 
 SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
 SLACK_CHANNEL = os.environ['SLACK_CHANNEL']
 SLACK_USER = os.environ['SLACK_USER']
+REPO_URL = os.environ['REPO_URL']
 
 http = urllib3.PoolManager()
 logger = logging.getLogger()
 config = configparser.ConfigParser()
 config.read("config.ini")
 
+
 def getBranchInfo(pipeline):
     client = boto3.client('codepipeline')
     execution = client.get_pipeline(
         name=pipeline
     )
-    message = json.dumps(execution['pipeline']['stages'][0]['actions'][0]['configuration']['BranchName'], indent=4, sort_keys=True, default=str, separators=(',', ': '))
+    message = json.dumps(execution['pipeline']['stages'][0]['actions'][0]['configuration']['BranchName'], indent=4,
+                         sort_keys=True, default=str, separators=(',', ': '))
     return json.loads(message)
+
 
 def getApplicationDestinationURL(config, configName, pipelineName):
     try:
@@ -28,27 +33,30 @@ def getApplicationDestinationURL(config, configName, pipelineName):
     except KeyError:
         return "Not exist"
 
+
 def getCommitInfo(pipeline, executionId, infoType):
     client = boto3.client('codepipeline')
     execution = client.get_pipeline_execution(
         pipelineName=pipeline,
         pipelineExecutionId=executionId
     )
-    message = json.dumps(execution['pipelineExecution']['artifactRevisions'][0][infoType], indent=4, sort_keys=True, default=str, separators=(',', ': '))
+    message = json.dumps(execution['pipelineExecution']['artifactRevisions'][0][infoType], indent=4, sort_keys=True,
+                         default=str, separators=(',', ': '))
     if infoType == 'revisionSummary':
-        message = json.loads(message) #Remove special/escape characters
-        message = json.loads(message) #Convert string to dictionary
+        message = json.loads(message)  # Remove special/escape characters
+        message = json.loads(message)  # Convert string to dictionary
         message = message['CommitMessage']
     else:
         message = json.loads(message)
     return message
+
 
 def codepipelineHandler(event):
     subject = "AWS CodePipeline Notification"
     fields = []
     color = "warning"
     changeType = ""
-    #snsSubject = event['Records'][0]['Sns']['Subject']
+    # snsSubject = event['Records'][0]['Sns']['Subject']
 
     message = event['Records'][0]['Sns']['Message']
     message = json.loads(message)
@@ -81,13 +89,13 @@ def codepipelineHandler(event):
                    "value": "https://console.aws.amazon.com/codepipeline/home?region=" + message['region'] + "#/view/" +
                             message['detail']['pipeline'],
                    "short": False})
-    #pipeline=message['detail']['pipeline']
+    # pipeline=message['detail']['pipeline']
     fields.append(
         {
             "title": "Branch",
             "value": getBranchInfo(
-                        pipeline=message['detail']['pipeline']
-                    ),
+                pipeline=message['detail']['pipeline']
+            ),
             "short": False
         }
     )
@@ -95,32 +103,44 @@ def codepipelineHandler(event):
         {
             "title": "Commit message",
             "value": getCommitInfo(
-                        pipeline=message['detail']['pipeline'],
-                        executionId=message['detail']['execution-id'],
-                        infoType='revisionSummary'
-                   ),
-            "short": False
-         }
-    )
-    fields.append(
-        {
-            "title": "Commit hash",
-            "value": getCommitInfo(
-                        pipeline=message['detail']['pipeline'],
-                        executionId=message['detail']['execution-id'],
-                        infoType='revisionId'
-                    ),
+                pipeline=message['detail']['pipeline'],
+                executionId=message['detail']['execution-id'],
+                infoType='revisionSummary'
+            ),
             "short": False
         }
     )
     fields.append(
         {
-            "title": "Commit URL",
+            "title": "Commit hash",
             "value": getCommitInfo(
-                        pipeline=message['detail']['pipeline'],
-                        executionId=message['detail']['execution-id'],
-                        infoType='revisionUrl'
-                    ),
+                pipeline=message['detail']['pipeline'],
+                executionId=message['detail']['execution-id'],
+                infoType='revisionId'
+            ),
+            "short": False
+        }
+    )
+    fields.append(  # $REPO_URL/$COMPANY_NAME/$REPO_NAME/commit/$COMMIT_URL
+        {
+            "title": "Commit URL",
+            "value": "https://" + REPO_URL + "/" + dict(
+                parse.parse_qsl(
+                    parse.urlsplit(
+                        getCommitInfo(
+                            pipeline=message['detail']['pipeline'],
+                            executionId=message['detail']['execution-id'],
+                            infoType='revisionUrl'
+                        )).query)
+            )["FullRepositoryId"] + "/commit/" + dict(
+                parse.parse_qsl(
+                    parse.urlsplit(
+                        getCommitInfo(
+                            pipeline=message['detail']['pipeline'],
+                            executionId=message['detail']['execution-id'],
+                            infoType='revisionUrl'
+                        )).query)
+            )["Commit"],
             "short": False
         }
     )
@@ -143,7 +163,7 @@ def codepipelineHandler(event):
     fields.append({"title": "Message",
                    "value": header,
                    "short": False})
-    #fields.append({"title": "Detail",
+    # fields.append({"title": "Detail",
     #               "value": message,
     #               "short": False})
 
@@ -162,7 +182,6 @@ def codepipelineHandler(event):
 
 
 def codebuildHandler(event):
-
     message = json.dumps(event['Records'][0]['Sns']['Message'])
 
     return message
@@ -179,7 +198,6 @@ def lambda_handler(event, context):
 
     if "codebuild" in eventSource:
         slack_message = codebuildHandler(event)
-
     http.request('POST', SLACK_WEBHOOK_URL, body=json.dumps(slack_message),
                  headers={'Content-Type': 'application/json'})
     return
